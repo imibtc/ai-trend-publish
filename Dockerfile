@@ -1,83 +1,51 @@
-# ========================================
-# 多架构构建 Dockerfile (支持 ARM64)
-# 适用于: 拾光坞N3 等 ARM64 设备
-# ========================================
-
-# 阶段1: 基础环境 (Ubuntu 22.04 支持多架构)
-FROM ubuntu:22.04 AS base
-
-# 设置非交互式安装
-ENV DEBIAN_FRONTEND=noninteractive
+FROM ubuntu:22.04
 
 # 1. 安装系统依赖
-RUN apt-get update && apt-get install -y \
-    curl \
-    unzip \
-    ca-certificates \
-    python3 \
-    python3-pip \
-    git \
-    tzdata \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+RUN apt-get update && apt-get install -y curl
 
-# 2. 设置时区为上海
-ENV TZ=Asia/Shanghai
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
-# 3. 安装 Deno (自动适配 ARM64/AMD64)
+# 2. 安装Deno并设置权限
 RUN curl -fsSL https://deno.land/x/install/install.sh | sh
+RUN chmod +x /root/.deno/bin/deno
 
-# 4. 设置 Deno 环境变量
+# 3. 设置环境变量
 ENV DENO_INSTALL="/root/.deno"
-ENV PATH="$DENO_INSTALL/bin:$PATH"
+ENV PATH="/root/.deno/bin:${PATH}"
 
-# 5. 验证 Deno 安装
-RUN echo "=== 验证环境 ===" && \
-    python3 --version && \
-    deno --version && \
-    uname -m && \
-    echo "环境验证完成"
+# 4. 验证安装
+RUN /root/.deno/bin/deno --version
 
 WORKDIR /app
 
-# 6. 安装 Python 依赖
-COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
+# 5. 复制项目文件
+COPY . .
 
-# 阶段2: 应用构建
-FROM base AS app
-
-# 7. 复制项目文件
-COPY config/ ./config/
-COPY src/ ./src/
-COPY run.py .
-COPY test_local.py .
-COPY entrypoint.sh .
-
-# 8. 创建必要的目录
-RUN mkdir -p /app/export /app/output /app/logs
-
-# 9. 设置执行权限
-RUN chmod +x entrypoint.sh
-
-# 10. 设置 Deno 缓存目录
+# 6. 设置缓存目录
 ENV DENO_DIR=/app/.deno_cache
 
-# 11. 验证项目结构
-RUN echo "=== 验证项目文件 ===" && \
-    ls -la && \
-    echo "配置文件:" && ls -la config/ && \
-    echo "源码文件:" && ls -la src/ && \
-    echo "项目验证完成"
+# 7. 预下载所有依赖（关键步骤）
+RUN echo "开始预下载所有依赖..." && \
+    # 缓存主要入口文件（触发依赖下载）
+    /root/.deno/bin/deno cache src/index.ts && \
+    /root/.deno/bin/deno cache src/test.ts && \
+    # 强制预下载关键的外部WASM依赖
+    /root/.deno/bin/deno cache --reload https://deno.land/x/imagescript@1.2.17/mod.ts && \
+    # 预下载JSR包
+    /root/.deno/bin/deno cache --reload https://jsr.io/@deno-library/progress/1.5.1/mod.ts && \
+    # 预下载其他外部依赖
+    /root/.deno/bin/deno cache --reload https://deno.land/x/sapling_markdown@v1.0.0/mod.ts && \
+    echo "所有依赖预下载完成！"
 
-# 12. 健康检查
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python3 -c "import sys; sys.exit(0)"
+# 8. 验证依赖是否完整下载
+RUN echo "验证依赖缓存..." && \
+    find /app/.deno_cache -name "*.wasm" | head -3 && \
+    find /app/.deno_cache -name "*.ts" | head -5 && \
+    echo "依赖验证完成"
 
-# 暴露端口
-EXPOSE 8000
+# 9. 创建用户
+RUN groupadd -r appgroup && useradd -r -g appgroup appuser
+USER appuser
 
-# 设置启动命令
-ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["run"]
+EXPOSE 3000
+
+# 10. 启动命令
+CMD ["/root/.deno/bin/deno", "task", "start"]
