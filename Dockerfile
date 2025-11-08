@@ -22,7 +22,7 @@ WORKDIR /app
 COPY . .
 
 # 4. 强制预下载所有依赖（关键修复）
-RUN echo "=== 强制预下载所有依赖 ===" && \
+RUN echo "=== Caching Deno dependencies ===" && \
     # 项目主要依赖
     deno cache --reload src/index.ts && \
     deno cache --reload src/server.ts && \
@@ -38,7 +38,7 @@ RUN echo "=== 强制预下载所有依赖 ===" && \
     # npm包依赖
     deno cache --reload npm:mysql2 && \
     deno cache --reload npm:dotenv && \
-    echo "所有依赖预下载完成"
+    echo "Dependencies cached successfully"
 
 # 5. 验证缓存内容
 RUN echo "=== 验证缓存内容 ===" && \
