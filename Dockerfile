@@ -1,24 +1,27 @@
-FROM --platform=$BUILDPLATFORM denoland/deno:alpine-2.0.0
+# 使用Ubuntu基础镜像，ARM64兼容性更好
+FROM --platform=linux/arm64 ubuntu:22.04
+
+# 安装依赖和Deno
+RUN apt-get update && apt-get install -y \
+    curl \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装Deno
+RUN curl -fsSL https://deno.land/x/install/install.sh | sh
+ENV DENO_INSTALL="/root/.deno"
+ENV PATH="$DENO_INSTALL/bin:$PATH"
 
 WORKDIR /app
 
-# 1. 复制基础配置文件
-COPY deno.json deno.lock ./
+# 复制项目文件
+COPY . .
 
-# 2. 复制源码目录
-COPY src/ ./src/
-COPY scripts/ ./scripts/
-COPY drizzle/ ./drizzle/
+# 预缓存依赖
+RUN deno cache src/index.ts
 
-# 3. 检查并复制templates目录（如果存在）
-RUN if [ -d "templates" ]; then cp -r templates/ ./templates/; else echo "templates目录不存在，跳过"; fi
-
-# 4. 预缓存依赖
-RUN deno cache src/index.ts && \
-    deno cache src/test.ts
-
-# 5. 创建非root用户
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# 创建非root用户
+RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 USER appuser
 
 EXPOSE 3000
