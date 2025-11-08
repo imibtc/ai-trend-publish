@@ -1,4 +1,4 @@
-FROM --platform=linux/arm64 ubuntu:22.04
+FROM ubuntu:22.04
 
 # 1. 安装系统依赖
 RUN apt-get update && apt-get install -y \
