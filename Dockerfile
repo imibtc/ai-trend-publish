@@ -41,11 +41,11 @@ RUN echo "=== Caching Deno dependencies ===" && \
     echo "Dependencies cached successfully"
 
 # 5. 验证缓存内容
-RUN echo "=== 验证缓存内容 ===" && \
-    echo "WASM文件:" && find /app/deno_cache -name "*.wasm" -type f | head -5 && \
-    echo "TypeScript文件:" && find /app/deno_cache -name "*.ts" -type f | head -5 && \
-    echo "JavaScript文件:" && find /app/deno_cache -name "*.js" -type f | head -3 && \
-    echo "缓存验证完成"
+RUN echo "=== Verifying cache content ===" && \
+    echo "WASM files:" && find /app/deno_cache -name "*.wasm" -type f | head -5 && \
+    echo "TypeScript files:" && find /app/deno_cache -name "*.ts" -type f | head -5 && \
+    echo "JavaScript files:" && find /app/deno_cache -name "*.js" -type f | head -3 && \
+    echo "Cache verification complete"
 
 # 6. 创建用户
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser
