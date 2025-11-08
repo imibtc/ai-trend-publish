@@ -14,8 +14,7 @@ COPY drizzle/ ./drizzle/
 RUN if [ -d "templates" ]; then cp -r templates/ ./templates/; else echo "templates目录不存在，跳过"; fi
 
 # 4. 预缓存依赖
-RUN deno cache deps.ts && \
-    deno cache src/index.ts && \
+RUN deno cache src/index.ts && \
     deno cache src/test.ts
 
 # 5. 创建非root用户
