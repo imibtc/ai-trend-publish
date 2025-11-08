@@ -33,7 +33,7 @@ RUN echo "=== Caching Deno dependencies ===" && \
     deno cache --reload https://deno.land/x/imagescript@1.2.17/utils/wasm/jpeg.wasm && \
     deno cache --reload https://deno.land/x/imagescript@1.2.17/utils/wasm/font.wasm && \
     # Other external dependencies
-    deno cache --reload https://deno.land/x/sapling_markdown@v1.0.0/mod.ts && \
+    deno cache --reload https://deno.land/x/sapling_markdown@1.0.0/mod.ts && \
     deno cache --reload https://jsr.io/@deno-library/progress/1.5.1/mod.ts && \
     # npm package dependencies
     deno cache --reload npm:mysql2 && \
