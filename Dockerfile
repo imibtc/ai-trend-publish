@@ -9,14 +9,12 @@ COPY deno.json deno.lock ./
 COPY src/ ./src/
 COPY scripts/ ./scripts/
 
-# 3. 条件复制templates目录（如果存在）
-COPY templates/ ./templates/ 2>/dev/null || echo "跳过不存在的templates目录"
 
-# 4. 预缓存依赖
+# 3. 预缓存依赖
 RUN deno cache src/index.ts && \
     deno cache src/test.ts
 
-# 5. 创建用户和设置
+# 4. 创建用户和设置
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 
