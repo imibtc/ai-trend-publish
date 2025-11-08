@@ -53,11 +53,21 @@ COPY scripts/ ./scripts/
 # 9. 创建必要的目录
 RUN mkdir -p /app/export /app/output /app/logs
 
-# 10. 预缓存 Deno 依赖
+# 10. 预缓存 Deno 依赖（修复网络超时）
 RUN echo "=== 缓存 Deno 依赖 ===" && \
     deno cache --reload src/index.ts && \
     deno cache --reload src/server.ts && \
+    # 强制预下载所有WASM文件
+    deno cache --reload https://deno.land/x/imagescript@1.2.17/mod.ts && \
+    deno cache --reload https://deno.land/x/imagescript@1.2.17/utils/wasm/zlib.wasm && \
+    deno cache --reload https://deno.land/x/imagescript@1.2.17/utils/wasm/jpeg.wasm && \
+    # 预下载其他可能的外部依赖
+    deno cache --reload https://deno.land/x/sapling_markdown@v1.0.0/mod.ts && \
     echo "依赖缓存完成"
+
+# 验证WASM文件是否成功缓存
+RUN find /root/.deno -name "*.wasm" 2>/dev/null | head -3 && \
+    echo "WASM文件缓存验证完成"
 
 # 11. 验证项目结构
 RUN echo "=== 验证项目文件 ===" && \
